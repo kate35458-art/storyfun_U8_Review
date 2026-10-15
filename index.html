@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Winners Jeopardy</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg1:#c9e3ff; --bg2:#fff1cf; --ink:#25262b; --muted:#667085;
+  --panel:#ffffff; --panel2:#f1f4f9; --line:#d5dbe6;
+  --cat:#0b2a8a; --cell:#1f4fd1; --cellhover:#3868ee; --gold:#ffd84a; --used:#aab4c8;
+  --t0:#1f5fd6; --t1:#f08a24; --good:#2e9f5b; --bad:#d64545; --accent:#ff7a1a; --wb:#7b3fe4; --wbhover:#9360f0;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg1:#0d1730; --bg2:#182b4b; --ink:#f2f3f6; --muted:#a9b3c7;
+    --panel:#1e2d4a; --panel2:#2a3b5f; --line:#3c5079;
+    --cat:#0a1f66; --cell:#173aa0; --cellhover:#2a52c8; --gold:#ffd84a; --used:#3a4766;
+    --t0:#5b97ff; --t1:#ffa04a; --wb:#6a35c9; --wbhover:#8352e0;
+  }
+}
+:root[data-theme="dark"]{
+  --bg1:#0d1730; --bg2:#182b4b; --ink:#f2f3f6; --muted:#a9b3c7;
+  --panel:#1e2d4a; --panel2:#2a3b5f; --line:#3c5079;
+  --cat:#0a1f66; --cell:#173aa0; --cellhover:#2a52c8; --gold:#ffd84a; --used:#3a4766;
+  --t0:#5b97ff; --t1:#ffa04a; --wb:#6a35c9; --wbhover:#8352e0;
+}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;margin:0;background:linear-gradient(var(--bg1),var(--bg2));color:var(--ink);
+  font-family:"Trebuchet MS","Segoe UI",system-ui,-apple-system,sans-serif;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+input{-webkit-user-select:text;user-select:text}
+button{font-family:inherit;cursor:pointer;color:var(--ink)}
+#app{height:100%;display:flex;flex-direction:column}
+#bar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 12px;flex-wrap:wrap}
+#bar h1{margin:0;font-size:19px;white-space:nowrap}
+.tools{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.tools button{border:2px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 12px;font-size:14px;font-weight:700}
+#screen{flex:1;min-height:0;display:flex;flex-direction:column;padding:2px 12px 12px;gap:8px;overflow-x:hidden}
+.card{background:var(--panel);border-radius:24px;padding:18px 22px;max-width:760px;margin:6px auto;box-shadow:0 6px 24px rgba(0,0,0,.14);width:100%;box-sizing:border-box}
+.title{font-size:clamp(28px,5vw,44px);font-weight:900;color:var(--t0);margin:4px 0;text-align:center}
+.sub{font-size:clamp(15px,2.2vw,19px);color:var(--muted);margin:0 0 8px;text-align:center}
+.rowlab{font-weight:800;font-size:19px;margin:14px 0 6px}
+.names{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:19px;font-weight:800}
+.names input{font-size:20px;padding:8px 12px;border-radius:12px;border:2px solid var(--line);background:var(--panel2);color:var(--ink);min-width:0;width:170px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:3px solid var(--line);background:var(--panel2);border-radius:16px;padding:10px 16px;font-size:19px;font-weight:800}
+.chip small{display:block;font-size:13px;font-weight:600;opacity:.85}
+.chip.on{border-color:var(--t0);background:#dbe8ff;color:#12388a}
+.check{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;margin-top:12px}
+.check input{width:24px;height:24px}
+.big{border:0;border-radius:999px;padding:12px 34px;font-size:24px;font-weight:900;color:#fff;background:linear-gradient(#37c36f,#1f9a52);box-shadow:0 5px 0 #146b38}
+.big.orange{background:linear-gradient(#ff8a3d,#f0561d);box-shadow:0 5px 0 #b83b0c}
+.ghost{background:var(--panel2);border:2px solid var(--line);border-radius:999px;padding:7px 16px;font-size:16px;font-weight:700}
+.ghost.sm{font-size:13px;padding:4px 10px;opacity:.9}
+/* scoreboard */
+#score{flex:none;display:flex;gap:10px;justify-content:center}
+.team{flex:1;min-width:0;max-width:420px;display:flex;align-items:center;gap:8px;background:var(--panel);border-radius:18px;padding:6px 14px;border:4px solid transparent;box-shadow:0 3px 10px rgba(0,0,0,.1)}
+.team.active{border-color:var(--accent)}
+.team .nm{font-weight:900;font-size:clamp(16px,2.4vw,24px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.team .pts{font-weight:900;font-size:clamp(26px,4.4vw,42px);color:#fff;border-radius:12px;padding:0 12px;min-width:2.2em;text-align:center}
+.team.t0 .pts{background:var(--t0)} .team.t1 .pts{background:var(--t1)}
+.team .pts.pop{animation:pop .6s ease}
+@keyframes pop{30%{transform:scale(1.35)}100%{transform:scale(1)}}
+.team .adj{display:flex;flex-direction:column;gap:2px}
+.team .adj button{border:0;background:var(--panel2);border-radius:8px;font-weight:900;font-size:13px;padding:0 8px;line-height:1.3}
+#turn{flex:none;text-align:center;font-weight:900;font-size:clamp(16px,2.4vw,22px)}
+/* board */
+#board{flex:1;min-height:0;display:grid;gap:6px;grid-template-rows:auto repeat(4,1fr)}
+.cat{display:flex;align-items:center;justify-content:center;text-align:center;background:var(--cat);color:#fff;font-weight:900;border-radius:10px;padding:8px 3px;font-size:clamp(9px,1.9vw,20px);letter-spacing:.2px;line-height:1.15;overflow-wrap:anywhere;min-width:0}
+.cell{border:0;border-radius:10px;background:var(--cell);color:var(--gold);font-weight:900;font-size:clamp(16px,4.6vw,48px);min-height:44px;min-width:0;padding:0;box-shadow:0 4px 0 rgba(0,0,0,.3)}
+.cell:hover:not(:disabled){background:var(--cellhover);transform:translateY(-1px)}
+.cell:disabled{background:var(--used);color:transparent;box-shadow:none;cursor:default}
+.lchips{display:flex;flex-wrap:wrap;gap:8px}
+.lchip{width:52px;height:52px;border-radius:14px;border:3px solid var(--line);background:var(--panel2);font-size:24px;font-weight:900}
+.lchip.on{border-color:var(--wb);background:var(--wb);color:#fff}
+.wbcard{text-align:center}
+.wbcard .big-l{width:120px;height:120px;margin:6px auto;border-radius:50%;background:var(--wb);color:#fff;font-size:76px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 0 rgba(0,0,0,.25)}
+.wbcard .ex{font-size:clamp(28px,4.6vw,40px);font-weight:900}
+.wbcard .inst{font-size:clamp(20px,3.2vw,30px);font-weight:700;margin:8px 0}
+.wbcard .hint{font-size:18px;color:var(--muted);font-weight:700;margin-bottom:8px}
+.wbcard .aud{display:inline-block;background:#fff2a8;color:#3b2b00;border-radius:12px;padding:4px 14px;font-weight:900;margin-bottom:8px}
+.wbact{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+/* clue overlay */
+.overlay{position:fixed;inset:0;background:rgba(8,16,40,.72);display:flex;align-items:center;justify-content:center;padding:10px;z-index:50}
+.clue{background:var(--panel);border-radius:26px;padding:18px 22px;width:min(920px,97vw);max-height:96%;overflow:auto;box-shadow:0 12px 44px rgba(0,0,0,.5);box-sizing:border-box}
+.chead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.badge{color:#fff;border-radius:999px;padding:5px 16px;font-weight:900;font-size:17px;background:var(--cat)}
+.val{color:#3b2b00;background:var(--gold);border-radius:999px;padding:5px 16px;font-weight:900;font-size:17px}
+.dd{color:#fff;background:linear-gradient(#ff5a5a,#d61f1f);border-radius:999px;padding:5px 16px;font-weight:900;font-size:17px;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.6}}
+.src{color:var(--muted);font-weight:700;font-size:14px;margin-left:auto}
+.turnline{font-weight:900;font-size:clamp(17px,2.6vw,22px);margin:2px 0 6px}
+.ctext{font-size:clamp(24px,4.2vw,40px);font-weight:800;line-height:1.3;margin:6px 0 12px}
+.ctext .who{color:var(--t0)}
+.ctext .line{margin:6px 0}
+.blank{display:inline-block;min-width:3.4em;border-bottom:5px solid var(--ink);vertical-align:bottom}
+.fillw{display:inline-block;background:#c8f2d4;color:#0f5a2d;border-radius:10px;padding:0 10px}
+.tok{display:inline-block;background:var(--panel2);border:3px solid var(--line);border-radius:14px;padding:2px 14px;margin:4px 6px 4px 0}
+.opts{display:grid;gap:10px}
+.opt{display:flex;align-items:center;gap:12px;text-align:left;font-size:clamp(20px,3.2vw,30px);font-weight:700;padding:11px 16px;border-radius:18px;border:4px solid var(--line);background:var(--panel2)}
+.opt .lt{flex:none;width:40px;height:40px;border-radius:50%;background:var(--t0);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:21px}
+.opt:hover:not(:disabled){border-color:var(--t0)}
+.opt.good{border-color:var(--good);background:#d3f5de;color:#0f5a2d}
+.opt.bad{border-color:var(--bad);background:#ffdcdc;color:#7a1c1c;animation:nope .35s}
+.opt:disabled{cursor:default;opacity:.85}
+@keyframes nope{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.fb{min-height:34px;margin-top:10px;font-size:clamp(20px,3vw,28px);font-weight:900;text-align:center}
+.fb.good{color:var(--good)} .fb.bad{color:var(--bad)} .fb.steal{color:var(--t1)}
+.ans{background:var(--panel2);border-radius:16px;padding:10px 16px;font-size:clamp(20px,3.2vw,30px);font-weight:900;margin:8px 0;color:var(--good)}
+.mark{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.mark button{flex:1;min-width:140px;border:0;border-radius:16px;padding:12px;font-size:clamp(16px,2.4vw,22px);font-weight:900;color:#fff}
+.mark .m0{background:var(--t0)} .mark .m1{background:var(--t1)} .mark .mx{background:#7b8498}
+.cfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;flex-wrap:wrap}
+.confetti{position:fixed;top:-20px;width:10px;height:16px;z-index:70;animation:fall linear forwards;pointer-events:none}
+@keyframes fall{to{transform:translateY(112vh) rotate(720deg)}}
+.endcard{max-width:560px;margin:18px auto;text-align:center}
+.stat{font-size:22px;font-weight:700;margin:6px 0}
+@media (max-width:640px){#bar h1{font-size:15px}.tools button{font-size:12px;padding:4px 8px}.team .adj{display:none}.team{padding:6px 8px}.team .nm{font-size:15px}.team .pts{font-size:24px;padding:0 8px}#score{gap:6px}.cat{font-size:8px;padding:6px 1px;letter-spacing:0;overflow-wrap:break-word}#board{gap:4px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="bar"><h1>Winners Jeopardy</h1>
+    <div class="tools"><button id="btnMode" type="button">Mode: Tap options</button><button id="btnVoice" type="button">Voice: On</button><button id="btnSound" type="button">Sound: On</button><button id="btnMenu" type="button">Menu</button></div></div>
+  <div id="screen"></div>
+</div>
+<script>
+(() => {
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/___/g, '<span class="blank"></span>');
+const plain = (s) => s.replace(/\*\*/g, "").replace(/___/g, " blank ");
+
+/* ---------------- content ---------------- */
+// type: fill | reply | order | qa | h.   opts includes the right answer (ans); tap mode shuffles them (H keeps A/B/C).
+const CATS = [
+  { name: "CAN / CAN'T", clues: [
+    { v: 100, type: "fill",  stem: "Jill can ___ very fast.", opts: ["run", "running", "runs"], ans: "run" },
+    { v: 200, type: "reply", lines: ["Jill: **Can** you catch the ball?"], gap: "Alex", opts: ["No, I can't.", "No, I'm not.", "It's in the net."], ans: "No, I can't." },
+    { v: 300, type: "order", tokens: ["Alex", "catch", "can't", "the ball"], ans: "Alex can't catch the ball.", opts: ["Alex can't catch the ball.", "Alex catch can't the ball.", "Can't Alex the ball catch."] },
+    { v: 400, type: "qa",    q: "Who can't run fast, but is very good at catching?", opts: ["Kim and Jim", "Jill", "Tom"], ans: "Kim and Jim" } ] },
+  { name: "GOOD AT", clues: [
+    { v: 100, type: "fill",  stem: "Alex is very good at ___ .", opts: ["throwing", "throw", "to throw"], ans: "throwing" },
+    { v: 200, type: "fill",  stem: "Kim and Jim ___ good at catching.", opts: ["am", "is", "are"], ans: "are" },
+    { v: 300, type: "reply", lines: ["Kim: **Are** you good at jumping?"], gap: "Jill", opts: ["Yes, I do.", "Yes, it is.", "No, I'm not."], ans: "No, I'm not." },
+    { v: 400, type: "order", tokens: ["very", "at", "throwing", "is", "good", "Alex"], ans: "Alex is very good at throwing.", opts: ["Alex is very good at throwing.", "Alex very is good at throwing.", "Good at Alex is very throwing."] } ] },
+  { name: "QUESTION WORDS", clues: [
+    { v: 100, type: "fill",  stem: "___ colour are the Suns' shirts?", opts: ["What", "Where", "Who"], ans: "What" },
+    { v: 200, type: "fill",  stem: "___ players are in a team?", opts: ["How many", "Which", "Whose"], ans: "How many" },
+    { v: 300, type: "qa",    q: "Who are very tall in The Five Suns?", opts: ["Matt and Pat", "Alice, Dan and Sam", "Kim and Jim"], ans: "Matt and Pat" },
+    { v: 400, type: "qa",    q: "Where is the ball at the end of the game?", opts: ["In the net.", "Under the chair.", "In the bag."], ans: "In the net." } ] },
+  { name: "HAVE GOT & SCORE", clues: [
+    { v: 100, type: "reply", lines: ["Jill: **Have** you got a tennis ball?"], gap: "Alex", opts: ["No, I can't.", "No, I'm not.", "No, I haven't."], ans: "No, I haven't." },
+    { v: 200, type: "reply", lines: ["Jill: **Whose** ball is it?"], gap: "Alex", opts: ["Yes, it is.", "It's mine.", "It's orange."], ans: "It's mine." },
+    { v: 300, type: "fill",  stem: "We've ___ five and they've got four!", opts: ["got", "have", "has"], ans: "got" },
+    { v: 400, type: "order", tokens: ["it", "to", "Kim", "Throw"], ans: "Throw it to Kim!", opts: ["Throw it to Kim!", "Kim to it Throw!", "It throw to Kim!"] } ] },
+  { name: "STORY TIME", clues: [
+    { v: 100, type: "fill",  stem: "Tom is ___ the ball on the floor.", opts: ["bouncing", "bounce", "to bounce"], ans: "bouncing" },
+    { v: 200, type: "qa",    q: "What colour are The Five Stars' shirts?", opts: ["Blue", "Orange", "Green"], ans: "Blue" },
+    { v: 300, type: "fill",  stem: "___ it to Kim!", opts: ["Throw", "Throwing", "Thrown"], ans: "Throw" },
+    { v: 400, type: "qa",    q: "Who says \"Run, run!\" in the story?", opts: ["Jim", "Jill", "Kim"], ans: "Jim" } ] },
+];
+// Workbook exercises: a student who picks one of these cells does it in the book (no page numbers on purpose).
+const EXERCISES = {
+  A: { text: "Look, read and write.", hint: "Use the word box." },
+  B: { text: "Look, read and write.", hint: "Find the answers in the story." },
+  C: { text: "Who is good at this? Put a tick in the box.", hint: "" },
+  D: { text: "Look and read. Write yes or no.", hint: "" },
+  E: { text: "Look at the pictures and read the questions. Write one-word answers.", hint: "" },
+  F: { text: "Listen and colour.", hint: "", audio: "Track 24" },
+  G: { text: "Read and draw lines.", hint: "" },
+  H: { text: "Listen and tick.", hint: "", audio: "Track 25" },
+};
+const LETTERS = Object.keys(EXERCISES);
+
+/* ---------------- sound / voice ---------------- */
+let AC = null, soundOn = true, voiceOn = true;
+function unlock() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } } if (AC && AC.state === "suspended") AC.resume(); }
+function tone(f, d, type, v, delay) {
+  if (!AC || !soundOn) return;
+  const t0 = AC.currentTime + (delay || 0), o = AC.createOscillator(), g = AC.createGain();
+  o.type = type || "sine"; o.frequency.value = f;
+  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(v || 0.12, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+  o.connect(g); g.connect(AC.destination); o.start(t0); o.stop(t0 + d + 0.02);
+}
+function sfx(k) {
+  if (k === "good") { tone(660, 0.12, "sine", 0.14); tone(880, 0.12, "sine", 0.14, 0.11); tone(1100, 0.24, "sine", 0.14, 0.22); }
+  else if (k === "bad") tone(200, 0.3, "sawtooth", 0.08);
+  else if (k === "open") { tone(500, 0.08, "triangle", 0.1); tone(700, 0.1, "triangle", 0.1, 0.08); }
+  else if (k === "dd") { [440, 554, 659, 880].forEach((f, i) => tone(f, 0.15, "square", 0.08, i * 0.1)); }
+  else if (k === "win") { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, 0.2, "triangle", 0.15, i * 0.16)); }
+}
+const HAS_TTS = ("speechSynthesis" in window) && (typeof SpeechSynthesisUtterance !== "undefined");
+function speak(t, force) { if (!HAS_TTS || !t || (!voiceOn && !force)) return; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = "en-US"; u.rate = 0.85; speechSynthesis.speak(u); } catch (e) {} }
+const stopSpeak = () => { try { speechSynthesis.cancel(); } catch (e) {} };
+
+/* ---------------- state ---------------- */
+let S = null, mode = "tap", names = ["Queenie", "Teacher"], chosen = new Set(LETTERS);
+const screen = $("#screen");
+
+function showStart() {
+  S = null; stopSpeak();
+  screen.innerHTML = `
+  <div class="card"><div class="title">Winners Jeopardy</div><p class="sub">Unit 8 review: can, good at, question words, Have you got ...? Some squares send you to the workbook!</p></div>
+  <div class="card">
+    <div class="names"><span>\u2B50</span><input id="n0" value="${esc(names[0])}" maxlength="14"><span>\u2600\uFE0F</span><input id="n1" value="${esc(names[1])}" maxlength="14"></div>
+    <div class="rowlab">How do you answer?</div>
+    <div class="chips" id="modes">
+      <button type="button" class="chip ${mode === "tap" ? "on" : ""}" data-m="tap">Tap options<small>The game checks the answer</small></button>
+      <button type="button" class="chip ${mode === "oral" ? "on" : ""}" data-m="oral">Say it aloud<small>Teacher marks right or wrong</small></button>
+    </div>
+    <div class="rowlab">Workbook exercises on the board <span style="color:var(--muted);font-weight:600">(tap to add or remove)</span></div>
+    <div class="lchips" id="lchips">${LETTERS.map((L) => `<button type="button" class="lchip ${chosen.has(L) ? "on" : ""}" data-l="${L}">${L}</button>`).join("")}</div>
+    <p class="sub" style="text-align:left;margin-top:10px">The letters stay hidden on the board. A letter is shown only when a square is picked, and only on the student's turn.</p>
+    <div style="text-align:center;margin-top:18px"><button type="button" class="big orange" id="go">Start!</button></div>
+    <p class="sub" style="margin-top:12px">You can switch the answer mode at any time with the button at the top.</p>
+  </div>`;
+  $("#modes").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (!b) return; unlock(); setMode(b.dataset.m); });
+  $("#lchips").addEventListener("click", (e) => { const b = e.target.closest(".lchip"); if (!b) return; unlock(); const L = b.dataset.l; if (chosen.has(L)) chosen.delete(L); else chosen.add(L); b.classList.toggle("on", chosen.has(L)); });
+  $("#go").onclick = () => { unlock(); names = [$("#n0").value.trim() || "Queenie", $("#n1").value.trim() || "Teacher"]; startGame(); };
+}
+function setMode(m) {
+  mode = m; $("#btnMode").textContent = "Mode: " + (m === "tap" ? "Tap options" : "Say it aloud");
+  document.querySelectorAll("#modes .chip").forEach((c) => c.classList.toggle("on", c.dataset.m === m));
+}
+
+function placeLetters(cats, list) {
+  const map = {}, counts = cats.map(() => 0);
+  shuffle(list).forEach((L) => {
+    const min = Math.min(...counts), ci = pick(counts.map((n, i) => (n === min ? i : -1)).filter((i) => i >= 0));
+    const vi = pick([0, 1, 2, 3].filter((v) => !map[`${ci}-${v}`]));
+    map[`${ci}-${vi}`] = L; counts[ci] += 1;
+  });
+  return map;
+}
+function startGame() {
+  const cats = CATS.map((c, ci) => ({ ...c, clues: c.clues.map((cl, vi) => ({ ...cl, id: `${ci}-${vi}`, ci, vi })) }));
+  const wb = placeLetters(cats, LETTERS.filter((L) => chosen.has(L)));
+  const normal = cats.flatMap((c) => c.clues).filter((cl) => !wb[cl.id]);
+  S = { cats, wb, score: [0, 0], turn: 0, used: new Set(), dd: normal.length ? pick(normal).id : null, cur: null, total: cats.reduce((n, c) => n + c.clues.length, 0), over: false };
+  renderBoard();
+}
+function renderBoard() {
+  const n = S.cats.length;
+  screen.innerHTML = `
+    <div id="score">${[0, 1].map((t) => `<div class="team t${t}" id="tm${t}"><span class="nm">${t === 0 ? "\u2B50" : "\u2600\uFE0F"} ${esc(names[t])}</span><span class="pts" id="pt${t}">${S.score[t]}</span><span class="adj"><button type="button" data-t="${t}" data-d="100">+</button><button type="button" data-t="${t}" data-d="-100">\u2212</button></span></div>`).join("")}</div>
+    <div id="turn"></div>
+    <div id="board" style="grid-template-columns:repeat(${n},minmax(0,1fr))">
+      ${S.cats.map((c) => `<div class="cat">${esc(c.name)}</div>`).join("")}
+      ${[0, 1, 2, 3].map((vi) => S.cats.map((c, ci) => { const cl = c.clues[vi]; return `<button type="button" class="cell" data-ci="${ci}" data-vi="${vi}" ${S.used.has(cl.id) ? "disabled" : ""}>${cl.v}</button>`; }).join("")).join("")}
+    </div>`;
+  document.querySelectorAll("#board .cell").forEach((b) => (b.onclick = () => { unlock(); openClue(+b.dataset.ci, +b.dataset.vi); }));
+  document.querySelectorAll(".adj button").forEach((b) => (b.onclick = () => { adjust(+b.dataset.t, +b.dataset.d); }));
+  updateTop();
+}
+function updateTop() {
+  [0, 1].forEach((t) => { $("#pt" + t).textContent = S.score[t]; $("#tm" + t).classList.toggle("active", S.turn === t && !S.over); });
+  const tn = $("#turn"); if (tn) tn.textContent = S.over ? "" : `${names[S.turn]}, pick a clue!`;
+}
+function adjust(t, d) { S.score[t] += d; updateTop(); const el = $("#pt" + t); el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); }
+function award(t, pts) { S.score[t] += pts; sfx("good"); updateTop(); const el = $("#pt" + t); if (el) { el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); } }
+
+/* ---------------- clue ---------------- */
+let overlay = null;
+// Letters are for the student only. If the teacher picks a letter square it plays as a normal clue,
+// and the letter moves to another unused square so the student still gets every exercise.
+function moveLetter(id, L) {
+  delete S.wb[id];
+  const free = S.cats.flatMap((c) => c.clues).filter((cl) => cl.id !== id && !S.used.has(cl.id) && !S.wb[cl.id] && cl.id !== S.dd);
+  if (!free.length) return; // no room left: the letter is dropped
+  const per = S.cats.map(() => 0); Object.keys(S.wb).forEach((k) => (per[+k.split("-")[0]] += 1));
+  const best = Math.min(...free.map((cl) => per[cl.ci]));
+  S.wb[pick(free.filter((cl) => per[cl.ci] === best)).id] = L;
+}
+function openClue(ci, vi) {
+  const cl = S.cats[ci].clues[vi];
+  if (S.used.has(cl.id) || S.cur) return;
+  let L = S.wb[cl.id];
+  if (L && S.turn === 1) { moveLetter(cl.id, L); L = null; }
+  if (L) {
+    S.cur = { cl, wb: true, letter: L, team: S.turn, worth: cl.v, done: false, msg: null, cat: S.cats[ci].name };
+    sfx("open"); renderWorkbook(); return;
+  }
+  const isDD = S.dd === cl.id;
+  S.cur = { cl, isDD, mode, opts: shuffle(cl.opts), tokens: cl.type === "order" ? shuffle(cl.tokens) : null,
+    team: S.turn, stage: "first", worth: cl.v * (isDD ? 2 : 1), revealed: false, done: false, bad: new Set(), msg: null, cat: S.cats[ci].name };
+  sfx(isDD ? "dd" : "open");
+  renderClue();
+  const t = speakText(cl); setTimeout(() => { if (S && S.cur && S.cur.cl === cl) speak(t); }, 250);
+}
+function renderWorkbook() {
+  const c = S.cur, ex = EXERCISES[c.letter];
+  if (!overlay) { overlay = document.createElement("div"); overlay.className = "overlay"; document.body.appendChild(overlay); }
+  overlay.innerHTML = `<div class="clue wbcard">
+    <div class="chead" style="justify-content:center"><span class="badge" style="background:var(--wb)">WORKBOOK</span><span class="val">${c.worth}</span></div>
+    <div class="turnline" style="color:${c.team === 0 ? "var(--t0)" : "var(--t1)"}">${esc(names[c.team])}, open your book!</div>
+    <div class="big-l">${c.letter}</div>
+    <div class="ex">Exercise ${c.letter}</div>
+    <div class="inst">${esc(ex.text)}</div>
+    ${ex.hint ? `<div class="hint">${esc(ex.hint)}</div>` : ""}
+    ${ex.audio ? `<div class="aud">Play ${esc(ex.audio)}</div>` : ""}
+    <div class="fb ${c.msg ? c.msg.cls : ""}" id="fb">${c.msg ? esc(c.msg.text) : ""}</div>
+    <div class="wbact">${c.done ? `<button type="button" class="big" id="bBack">Back to board</button>`
+      : `<button type="button" class="big" id="bDone">\u2713 Done  +${c.worth}</button><button type="button" class="ghost" id="bNot">Not finished</button>`}</div>
+    <div style="color:var(--muted);font-size:14px;margin-top:10px">Teacher: tap Done when ${esc(names[c.team])} has finished the exercise in the book.</div>
+  </div>`;
+  const d = $("#bDone"); if (d) d.onclick = () => { unlock(); award(c.team, c.worth); c.done = true; c.msg = { text: `${names[c.team]} gets ${c.worth}!`, cls: "good" }; renderWorkbook(); };
+  const n = $("#bNot"); if (n) n.onclick = () => { c.done = true; c.msg = { text: "No points this time.", cls: "bad" }; sfx("bad"); renderWorkbook(); };
+  const bb = $("#bBack"); if (bb) bb.onclick = () => closeClue();
+}
+function speakText(cl) {
+  if (cl.type === "fill") return plain(cl.stem);
+  if (cl.type === "reply") return cl.lines.map(plain).join(" ") + " " + cl.gap + " says...";
+  if (cl.type === "order") return "Put the words in order: " + S.cur.tokens.join(", ");
+  return cl.q;
+}
+function clueBody(c) {
+  const cl = c.cl;
+  if (cl.type === "fill") return `<div class="ctext">${fmt(cl.stem)}</div>`;
+  if (cl.type === "reply") return `<div class="ctext">${cl.lines.map((l) => `<div class="line">${fmt(l)}</div>`).join("")}<div class="line"><span class="who">${esc(cl.gap)}:</span> <span class="blank"></span></div></div>`;
+  if (cl.type === "order") return `<div class="ctext"><div style="font-size:.6em;color:var(--muted)">Put the words in order.</div>${c.tokens.map((t) => `<span class="tok">${esc(t)}</span>`).join("")}</div>`;
+  return `<div class="ctext">${esc(cl.q)}</div>`;
+}
+function renderClue() {
+  const c = S.cur, cl = c.cl, tap = c.mode === "tap";
+  if (!overlay) { overlay = document.createElement("div"); overlay.className = "overlay"; document.body.appendChild(overlay); }
+  overlay.innerHTML = `<div class="clue">
+    <div class="chead"><span class="badge">${esc(c.cat)}</span><span class="val">${c.worth}</span>${c.isDD ? '<span class="dd">DOUBLE POINTS!</span>' : ""}</div>
+    <div class="turnline" id="tl" style="color:${c.team === 0 ? "var(--t0)" : "var(--t1)"}">${esc(names[c.team])}${c.stage === "steal" && !c.done ? " \u2014 steal!" : ""}</div>
+    ${clueBody(c)}
+    ${tap ? `<div class="opts" id="opts">${c.opts.map((o, i) => `<button type="button" class="opt ${c.bad.has(i) ? "bad" : ""} ${c.done && o === cl.ans ? "good" : ""}" data-i="${i}" ${(c.done || c.bad.has(i)) ? "disabled" : ""}><span class="lt">${"ABC"[i]}</span><span>${esc(o)}</span></button>`).join("")}</div>` : ""}
+    ${!tap && c.revealed ? `<div class="ans">Answer: ${esc(cl.ans)}</div>` : ""}
+    <div class="fb ${c.msg ? c.msg.cls : ""}" id="fb">${c.msg ? esc(c.msg.text) : ""}</div>
+    <div class="cfoot"><div><button type="button" class="ghost" id="bListen">Listen</button> ${!tap && !c.revealed && !c.done ? `<button type="button" class="ghost" id="bShow">Show answer</button>` : ""} <button type="button" class="ghost sm" id="bSkip">Skip clue</button></div>
+      <div id="mk">${c.done ? `<button type="button" class="big" id="bBack">Back to board</button>`
+        : (!tap && c.revealed) ? `<div class="mark" style="margin:0"><button type="button" class="m0" id="m0">\u2713 ${esc(names[0])}</button><button type="button" class="m1" id="m1">\u2713 ${esc(names[1])}</button><button type="button" class="mx" id="mx">\u2717 Nobody</button></div>`
+        : (tap && c.stage === "steal") ? `<button type="button" class="ghost" id="bNoSteal">No steal</button>` : ""}</div></div>
+  </div>`;
+  $("#bListen").onclick = () => { unlock(); speak(speakText(cl), true); };
+  $("#bSkip").onclick = () => closeClue();
+  overlay.querySelectorAll("#opts .opt").forEach((b) => (b.onclick = () => { unlock(); tapAnswer(+b.dataset.i); }));
+  const sh = $("#bShow"); if (sh) sh.onclick = () => { c.revealed = true; renderClue(); };
+  const m0 = $("#m0"); if (m0) { m0.onclick = () => oralDone(0); $("#m1").onclick = () => oralDone(1); $("#mx").onclick = () => oralDone(-1); }
+  const ns = $("#bNoSteal"); if (ns) ns.onclick = () => { c.done = true; c.msg = { text: "Answer: " + cl.ans, cls: "bad" }; renderClue(); };
+  const bb = $("#bBack"); if (bb) bb.onclick = () => closeClue();
+}
+function speakDone(cl) {
+  if (cl.type === "fill") speak(cl.stem.replace("___", cl.ans));
+  else if (cl.type === "reply" || cl.type === "order") speak(cl.ans);
+}
+function tapAnswer(i) {
+  const c = S.cur, cl = c.cl;
+  if (c.done) return;
+  if (c.opts[i] === cl.ans) {
+    award(c.team, c.worth); c.done = true;
+    c.msg = { text: c.stage === "steal" ? `${names[c.team]} steals it! +${c.worth}` : `Correct! +${c.worth}`, cls: "good" }; speakDone(cl);
+  } else {
+    c.bad.add(i); sfx("bad");
+    if (c.stage === "first") { c.stage = "steal"; c.team = 1 - c.team; c.msg = { text: `Not quite! ${names[c.team]}, you can steal it!`, cls: "steal" }; }
+    else { c.done = true; c.msg = { text: "Nobody got it. Answer: " + cl.ans, cls: "bad" }; }
+  }
+  renderClue();
+}
+function oralDone(t) {
+  const c = S.cur; if (!c || c.done) return; c.done = true;
+  if (t >= 0) award(t, c.worth); else sfx("bad");
+  c.msg = t >= 0 ? { text: `${names[t]} gets ${c.worth}!`, cls: "good" } : { text: "No points this time.", cls: "bad" };
+  speakDone(c.cl); renderClue();
+}
+function closeClue() {
+  const c = S.cur; if (!c) return; stopSpeak();
+  S.used.add(c.cl.id); S.cur = null; S.turn = 1 - S.turn;
+  if (overlay) { overlay.remove(); overlay = null; }
+  if (S.used.size >= S.total) { endGame(); return; }
+  renderBoard();
+}
+function confetti() {
+  const cols = ["#ff6b6b", "#ffd43b", "#51cf66", "#339af0", "#cc5de8", "#ffa94d"];
+  for (let i = 0; i < 70; i++) { const d = document.createElement("div"); d.className = "confetti"; d.style.left = Math.random() * 100 + "vw"; d.style.background = cols[i % cols.length]; d.style.animationDuration = 2.5 + Math.random() * 2.5 + "s"; d.style.animationDelay = Math.random() * 1.2 + "s"; document.body.appendChild(d); setTimeout(() => d.remove(), 7000); }
+}
+function endGame() {
+  S.over = true; const [a, b] = S.score, win = a > b ? 0 : b > a ? 1 : -1;
+  if (win >= 0) { sfx("win"); confetti(); }
+  screen.innerHTML = `<div class="card endcard"><div style="font-size:64px">${win >= 0 ? "\uD83C\uDFC6" : "\uD83E\uDD1D"}</div>
+    <div class="title" style="color:${win === 1 ? "var(--t1)" : "var(--t0)"}">${win >= 0 ? esc(names[win]) + " wins!" : "It's a tie!"}</div>
+    <div class="stat">\u2B50 ${esc(names[0])}: ${a} &nbsp;&nbsp; \u2600\uFE0F ${esc(names[1])}: ${b}</div>
+    <div style="margin-top:14px"><button type="button" class="big orange" id="again">Play again</button> <button type="button" class="big" id="menu">Menu</button></div></div>`;
+  $("#again").onclick = () => { unlock(); startGame(); }; $("#menu").onclick = showStart;
+}
+
+/* ---------------- chrome ---------------- */
+$("#btnMode").onclick = () => { if (S && S.cur && !S.cur.done) return; unlock(); setMode(mode === "tap" ? "oral" : "tap"); };
+$("#btnSound").onclick = (e) => { soundOn = !soundOn; e.target.textContent = "Sound: " + (soundOn ? "On" : "Off"); unlock(); };
+$("#btnVoice").onclick = (e) => { voiceOn = !voiceOn; e.target.textContent = "Voice: " + (voiceOn ? "On" : "Off"); unlock(); stopSpeak(); };
+$("#btnMenu").onclick = () => { if (S && S.cur) return; showStart(); };
+window.__jp = { get S() { return S; }, CATS, EXERCISES, LETTERS, startGame, setMode, get mode() { return mode; } };
+showStart();
+})();
+</script>
+</body>
+</html>
